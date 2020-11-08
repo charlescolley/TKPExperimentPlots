@@ -34,7 +34,8 @@ from matplotlib.patches import Ellipse
 #PROJECT_LOCATION = "/Users/ccolley/PycharmProjects/PAMI_TAME_Exps/"
 #MULTIMAGNA_RANK_RESULTS = PROJECT_LOCATION+"data/MultiMAGNA_TAME_results/RankExps/"
 #MULTIMAGNA_SING_VALS_RESULTS = PROJECT_LOCATION+"data/MultiMAGNA_TAME_results/SingVals/"
-HOFASM_RESULTS = "../data/HOFASMexperiments/"
+HOFASM_RESULTS = "../data/HOFASMExperiments/"
+TAME_RESULTS = "../data/TAMEExperiments/"
 #random graph results locations
 #RANDOM_GRAPH_RESULTS = PROJECT_LOCATION + "data/synthetic_TAME_results/"
 
