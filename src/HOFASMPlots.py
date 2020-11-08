@@ -60,7 +60,7 @@ def make_HOFASM_accuracy_plots(add_inaxis=False):
     plt.tick_params(labelright=True)
     plt.grid(True,axis='y')
     plt.xlabel(r"stddev of Noise $\sigma$")
-    plt.ylabel(f"avg accuracy ({average_over} trials)")
+    plt.ylabel(f"accuracy ({average_over} trials)")
 
     if add_inaxis:
         axins = ax.inset_axes([.03,.06,.43,.47])
@@ -153,7 +153,7 @@ def make_timing_plots():
                                np.percentile(experiments,80)))
 
 
-    with open(HOFASM_RESULTS+"HOFASM_explicitMarginalization_runtimes_seeded_100_trials.json","r") as f:
+    with open(HOFASM_RESULTS+"HOFASM_partiallyImplicit_runtimes_seeded_100_trials.json","r") as f:
         data = json.load(f)
 
     HOFASM_orig_processed_data = []
@@ -164,7 +164,7 @@ def make_timing_plots():
                                            np.percentile(experiments,80)))
 
 
-    with open(HOFASM_RESULTS+"HOFASM_implicitMarginalization_runtimes_seeded_100_trials.json","r") as f:
+    with open(HOFASM_RESULTS+"HOFASM_fullyImplicit_runtimes_seeded_100_trials.json","r") as f:
         data = json.load(f)
 
     HOFASM_orig2_processed_data = []
