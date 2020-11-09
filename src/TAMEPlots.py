@@ -546,3 +546,230 @@ def TAME_MultiMAGNA_rank_1_case_singular_values(axes=None):
     plt.tight_layout()
     plt.show()
     
+
+#Shows the noise introduced by the TAME routine by considering second largest 
+# singular values in the rank 1 case (alpha=1.0, beta =0.0), plots againts both 
+# |V_A||V_B| and |T_A||T_B| for comparison. Data plotted for RandomGeometric Graphs 
+# degreedist = LogNormal(5,1). 
+#TBD: merge with Multimagna data? 
+def TAME_RandomGeometric_rank_1_case_singular_values(axes=None):
+
+    if axes is None:
+        f,axes = plt.subplots(1,1)
+        f.set_size_inches(3, 3)
+
+   
+
+    with open(TAME_RESULTS + "Rank1SingularValues/LowRankTAME_RandomGeometric_log5_iter_30_n_100_20K_no_match_tol_1e-12.json","r") as f:
+        LowRankTAME_data = json.load(f)    
+        #LowRankTAME_data = LowRankTAME_data[-1]
+
+    with open(TAME_RESULTS + "Rank1SingularValues/TAME_RandomGeometric_degreedist:log5_alphas:[1.0]_betas:[0.0]_iter:30_trials:10_n:[1e2,5e2,1e3,2e3,5e3,1e4,2e4]_no_match_tol:1e-12.json","r") as f:
+        TAME_data = json.load(f)
+    
+
+    def process_RandomGeometricResults(data):
+
+        nonzero_second_largest_sing_vals = []
+        zero_second_largest_sing_vals = []
+
+        nonzero_vertex_products = []
+        zero_vertex_products = []
+
+        nonzero_triangle_products = []   
+        zero_triangle_products = []
+
+        n_values = set()
+        for p,seed,p_remove,n,_,max_tris,profiles in data:
+            n_values.add(n)
+            params, profile_dict = profiles[0] #should only be alpha = 1.0, beta = 0.0
+
+            #normalize the singular values
+            for s in profile_dict["sing_vals"]: 
+                s = [0.0 if x is None else x for x in s]
+                #saving to json seems to introduce Nones when reading from saved Julia files
+                total = sum(s)
+                s[:] = [s_i/total for s_i in s]
+
+            #max_rank = int(max(profile_dict["ranks"]))
+
+            sing_vals = [(i,s[1]) if len(s) > 1 else (i,2e-16) for (i,s) in enumerate(profile_dict["sing_vals"])]
+            #find max sing val, and check iterates rank
+            i,sing2_val = max(sing_vals,key=lambda x:x[1])
+            rank = profile_dict["ranks"][i]
+
+            if rank > 1:
+                #print([sum(s) for s in profile_dict["sing_vals"]])
+                nonzero_second_largest_sing_vals.append(sing2_val)
+                nonzero_vertex_products.append(n**2)
+                nonzero_triangle_products.append(max_tris**2) 
+
+                #TODO: need to use seed to compute actual triangle counts
+            else:
+                zero_second_largest_sing_vals.append(sing2_val)
+                zero_vertex_products.append(n**2)
+                zero_triangle_products.append(max_tris**2) 
+            """
+            sing_vals = [(i,s[1]) if len(s) > 1 else (i,2e-16) for i,s in enumerate(profile_dict["sing_vals"])]
+            print(profile_dict["ranks"])
+            for (i,s) in sing_vals:
+                if profile_dict["ranks"][i] > 1: 
+                    #print([sum(s) for s in profile_dict["sing_vals"]])
+                    nonzero_second_largest_sing_vals.append(min(sing_vals))
+                    nonzero_vertex_products.append(n**2)
+                    nonzero_triangle_products.append(max_tris**2) 
+
+            """
+
+        return n_values, nonzero_second_largest_sing_vals, nonzero_vertex_products, nonzero_triangle_products, zero_second_largest_sing_vals, zero_vertex_products, zero_triangle_products
+
+
+    n_values, LowRankTAME_nonzero_second_largest_sing_vals, LowRankTAME_nonzero_vertex_products,\
+         LowRankTAME_nonzero_triangle_products, LowRankTAME_zero_second_largest_sing_vals,\
+              LowRankTAME_zero_vertex_products, LowRankTAME_zero_triangle_products =\
+                   process_RandomGeometricResults(LowRankTAME_data)
+    _, TAME_nonzero_second_largest_sing_vals, TAME_nonzero_vertex_products,\
+         TAME_nonzero_triangle_products, TAME_zero_second_largest_sing_vals,\
+              TAME_zero_vertex_products, TAME_zero_triangle_products =\
+                   process_RandomGeometricResults(TAME_data)
+
+    print(len(TAME_nonzero_second_largest_sing_vals))
+    print(len(TAME_zero_second_largest_sing_vals))
+    
+    
+
+    #return LowRankTAME_data 
+    """
+    #
+    #   Make Vertex_Vertex plots
+    #
+    ax = plt.subplot(121)
+
+    #format the axis
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.grid(which="major", axis="y")
+    ax.grid(which="minor", axis="x")
+    #ax.annotate("TAME", xy=(.1, .9), xycoords='axes fraction', c=darkest_t4_color,size=10)
+    #ax.annotate("LowRankTAME", xy=(.1, .1), xycoords='axes fraction', c=t2_color,size=10)
+    ax.annotate(r"$\epsilon$", xy=(1.06, .02), xycoords='axes fraction', c=t3_color)
+#    ax.set_xscale("log")
+    ax.set_ylabel(r"$\sigma_2$")
+    #ax.set_ylabel(r"max $\sigma_2")
+    ax.set_xlabel(r"|$V_A$||$V_B$|")
+ #   ax.set_ylim(1e-16,1e-7)
+    ax.set_xlim(5e3,7e8)
+    ax.set_xticks([1e4,1e6,1e7,1e8])
+    print(n_values)
+    print([n**2 for n in n_values])
+    #ax.set_xticks([2e5,4e8])
+    ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext())
+
+    #scatter plot formatting
+    marker_size = 20
+    marker_alpha = 1.0
+
+
+
+    #plot machine epsilon
+    #all_vertex_products = list(itertools.chain(TAME_zero_vertex_products,TAME_nonzero_vertex_products))
+    #plt.plot(sorted(all_vertex_products),[2e-16]*(len(all_vertex_products)),c=t3_color)
+    plt.plot([1e3,1e9],[2e-16]*2,c=t3_color,zorder=1)
+
+    #plot LowRankTAME results
+    plt.scatter(LowRankTAME_nonzero_vertex_products,LowRankTAME_nonzero_second_largest_sing_vals,c=darker_t4_color,marker='o',s=marker_size,alpha=marker_alpha,zorder=2)
+    plt.scatter(LowRankTAME_zero_vertex_products,LowRankTAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=darker_t4_color,s=marker_size,alpha=marker_alpha,zorder=2)
+    #print(LowRankTAME_zero_vertex_products)
+    #print(LowRankTAME_zero_second_largest_sing_vals)
+    
+    #plot TAME results 
+    plt.scatter(TAME_nonzero_vertex_products,TAME_nonzero_second_largest_sing_vals,c=t1_color,marker='o',s=marker_size,alpha=marker_alpha,zorder=2)
+    plt.scatter(TAME_zero_vertex_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=t1_color,s=marker_size,alpha=marker_alpha,zorder=2)
+    
+    #make zoom in window
+    axins = ax.inset_axes([.63,.1,.15,.45]) # zoom = 6
+    axins.scatter(TAME_nonzero_vertex_products,TAME_nonzero_second_largest_sing_vals,marker='o', c=t1_color,s=marker_size)
+    axins.scatter(TAME_zero_vertex_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=t1_color,s=marker_size)
+    # sub region of the original image
+#    axins.set_xlim(9e9, 3e11)
+    axins.set_xlim(6e7, 2e8)
+    axins.set_ylim(7e-13, 6e-12)
+    axins.set_xscale("log")
+    axins.set_yscale("log")
+    axins.set_xticks([])
+    axins.minorticks_off()
+    axins.set_yticks([])
+    mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5",alpha=.5,zorder=1)
+    """
+
+
+    #
+    #   Make Triangle_Triangle plots
+    #
+    ax = axes
+#    ax = plt.subplot(122)
+
+    #format the axis
+    ax.set_yscale("log")
+    ax.grid(which="major", axis="y")
+    #ax.set_ylabel(r"max $\sigma_2")
+    #ax.set_ylabel(r"max [$\sum_{i=2}^k\sigma_i]")
+    #ax.yaxis.set_ticks_position('right')
+    #ax.tick_params(labeltop=False, labelright=True)
+    ax.set_xlabel(r"|$T_A$||$T_B$|")
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.set_xlim(3e5,7e11)
+    ax.set_xticks([1e7,1e8,1e11])
+    #ax.set_ylim(1e-16,1e-7)
+    ax.annotate(r"$\epsilon$", xy=(1.06, .02), xycoords='axes fraction', c=t3_color)
+    ax.set_ylabel(r"$\sigma_2$")
+    #scatter plot formatting
+    marker_size = 20
+    marker_alpha = 1.0
+
+    #plot the TAME Data
+    """
+    plt.scatter(TAME_nonzero_triangle_products,TAME_nonzero_second_largest_sing_vals,marker='o',c=darker_t4_color,s=marker_size)
+    plt.scatter(TAME_zero_triangle_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=darker_t4_color,s=marker_size)
+    """
+    #plot machine epsilon
+    plt.plot([3e5,7e11],[2e-16]*2,c=t3_color,zorder=1)
+
+    #plot LowRankTAME Data
+    plt.scatter(LowRankTAME_nonzero_triangle_products,LowRankTAME_nonzero_second_largest_sing_vals,marker='o', c=darker_t4_color,s=marker_size,zorder=2)
+    plt.scatter(LowRankTAME_zero_triangle_products,LowRankTAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=darker_t4_color,s=marker_size,zorder=2)
+
+    #plot TAME Data
+    plt.scatter(TAME_nonzero_triangle_products,TAME_nonzero_second_largest_sing_vals,marker='o', c=t1_color,s=marker_size,zorder=3)
+    plt.scatter(TAME_zero_triangle_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=t1_color,s=marker_size,zorder=3)
+
+
+    axins = ax.inset_axes([.6,.15,.25,.25]) # zoom = 6
+    axins.scatter(TAME_nonzero_triangle_products,TAME_nonzero_second_largest_sing_vals,marker='o', c=t1_color,s=marker_size)
+    axins.scatter(TAME_zero_triangle_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=t1_color,s=marker_size)
+    # sub region of the original image
+#    axins.set_xlim(9e9, 3e11)
+    axins.set_xlim(4e9, 1e10)
+    axins.set_ylim(5e-13, 1.5e-12)
+    axins.set_xscale("log")
+    axins.set_yscale("log")
+    axins.set_xticks([])
+    axins.minorticks_off()
+    axins.set_yticks([])
+    mark_inset(ax, axins, loc1=3, loc2=1, fc="none", ec="0.5",alpha=.5,zorder=1)
+
+   
+    #axins.tick_params(labelleft=False, labelbottom=False)
+    #axins.set_yticks([])
+
+    """
+    axins.set_xticklabels([])
+    axins.set_yticklabels([])
+    """
+
+
+    #TODO: combining plots, potentially remove later
+    plt.tight_layout()
+    plt.show()
+
