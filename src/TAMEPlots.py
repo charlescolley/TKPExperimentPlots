@@ -390,4 +390,159 @@ def TAME_random_graph_noise_experiments(axes,p_file,n_file,color,anotate_label,a
     make_percentile_plot(ax,p_tri_match,color,linestyle=linestyle)
 
 
+#Shows the noise introduced by the TAME routine by considering second largest 
+# singular values in the rank 1 case (alpha=1.0, beta =0.0), plots againts both 
+# |V_A||V_B| and |T_A||T_B| for comparison. Data plotted for MultilMAGNA++ data
+def TAME_MultiMAGNA_rank_1_case_singular_values(axes=None):
+    with open(TAME_RESULTS + "Rank1SingularValues/TAME_LVGNA_iter_30_no_match_tol_1e-12.json","r") as f:
+        TAME_data = json.load(f)
+        TAME_data= TAME_data[-1]
+
+    with open(TAME_RESULTS+ "Rank1SingularValues/LowRankTAME_LVGNA_iter_30_no_match_tol_1e-12.json","r") as f:
+        LowRankTAME_data = json.load(f)    
+        LowRankTAME_data = LowRankTAME_data[-1]
+
+
+    if axes is None:
+        f,axes = plt.subplots(1,1)
+        f.set_size_inches(3, 3)
+
+    def process_data(data):
+        nonzero_second_largest_sing_vals = []
+        zero_second_largest_sing_vals = []
+
+        nonzero_vertex_products = []
+        zero_vertex_products = []
+
+        nonzero_triangle_products = []   
+        zero_triangle_products = []
+
+        for file_A,file_B,_,_,profile in data:
+            graph_A =  " ".join(file_A.split(".ssten")[0].split("_"))
+            graph_B =  " ".join(file_B.split(".ssten")[0].split("_"))
+            profile_dict = profile[0][-1]
+
+            #normalize the singular values 
+            for s in profile_dict["sing_vals"]:
+                total = sum(s)
+                s[:] = [s_i/total for s_i in s]
+
+            #max_rank = int(max(profile_dict["ranks"]))
+            #sing_vals = [s[1] if len(s) > 1 else 2e-16 for s in profile_dict["sing_vals"]
+            sing_vals = [(i,s[1]) if len(s) > 1 else (i,2e-16) for (i,s) in enumerate(profile_dict["sing_vals"])]
+            #find max sing val, and check iterates rank
+            i,sing2_val = max(sing_vals,key=lambda x:x[1])
+            rank = profile_dict["ranks"][i]
+
+            if rank > 1:
+            #if max_rank > 1.0:
+                nonzero_second_largest_sing_vals.append(sing2_val)
+                nonzero_vertex_products.append(vertex_counts[graph_A]*vertex_counts[graph_B])
+                nonzero_triangle_products.append(triangle_counts[graph_A]*triangle_counts[graph_B])
+            else:
+                zero_second_largest_sing_vals.append(sing2_val)
+                zero_vertex_products.append(vertex_counts[graph_A]*vertex_counts[graph_B])
+                zero_triangle_products.append(triangle_counts[graph_A]*triangle_counts[graph_B])
+
+        return nonzero_second_largest_sing_vals, nonzero_vertex_products, nonzero_triangle_products, zero_second_largest_sing_vals, zero_vertex_products, zero_triangle_products
+
+    
+    TAME_nonzero_second_largest_sing_vals, TAME_nonzero_vertex_products, \
+        TAME_nonzero_triangle_products, TAME_zero_second_largest_sing_vals,\
+             TAME_zero_vertex_products, TAME_zero_triangle_products = process_data(TAME_data)
+
+    print(len(TAME_nonzero_second_largest_sing_vals))
+    print(len(TAME_zero_second_largest_sing_vals))
+    
+    LowRankTAME_nonzero_second_largest_sing_vals, LowRankTAME_nonzero_vertex_products, \
+        LowRankTAME_nonzero_triangle_products, LowRankTAME_zero_second_largest_sing_vals,\
+             LowRankTAME_zero_vertex_products, LowRankTAME_zero_triangle_products = process_data(LowRankTAME_data)
+
+    """
+    #print(LowRankTAME_nonzero_second_largest_sing_vals)
+    #print(LowRankTAME_zero_second_largest_sing_vals)
+    ax = plt.subplot(121)
+
+    #format the axis
+    ax.set_yscale("log")
+    ax.grid(which="major", axis="y")
+    ax.annotate("TAME", xy=(.1, .9), xycoords='axes fraction', c=t1_color,size=10)
+    ax.annotate("LowRankTAME", xy=(.1, .1), xycoords='axes fraction', c=darker_t4_color,size=10)
+    ax.annotate(r"$\epsilon$", xy=(1.06, .02), xycoords='axes fraction', c=t3_color)
+#    ax.set_xscale("log")
+    ax.set_ylabel(r"$\sigma_2$")
+    #ax.set_ylabel(r"max $\sigma_2")
+    ax.set_xlabel(r"|$V_A$||$V_B$|")
+    ax.set_ylim(1e-16,1e-7)
+    ax.set_xlim(1e2,1.5e8)
+    plt.xticks([1e7,1e8])
+    ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext())
+
+    #scatter plot formatting
+    marker_size = 20
+    marker_alpha = 1.0
+
+    #plot TAME results
+    plt.scatter(TAME_nonzero_vertex_products,TAME_nonzero_second_largest_sing_vals,marker='o',c=t1_color,s=marker_size,alpha=marker_alpha)
+    plt.scatter(TAME_zero_vertex_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=t1_color,s=marker_size,alpha=marker_alpha)
+    
+    #plot machine epsilon
+    all_vertex_products = list(itertools.chain(TAME_zero_vertex_products,TAME_nonzero_vertex_products))
+    #plt.plot(sorted(all_vertex_products),[2e-16]*(len(all_vertex_products)),c=t3_color)
+    plt.plot([0,1.5e8],[2e-16]*2,c=t3_color,zorder=1)
+
+    #plot LowRankTAME results
+    plt.scatter(LowRankTAME_nonzero_vertex_products,LowRankTAME_nonzero_second_largest_sing_vals,c=darker_t4_color,marker='o',s=marker_size,alpha=marker_alpha,zorder=2)
+    plt.scatter(LowRankTAME_zero_vertex_products,LowRankTAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=darker_t4_color,s=marker_size,alpha=marker_alpha,zorder=2)
+    #print(LowRankTAME_zero_vertex_products)
+    #print(LowRankTAME_zero_second_largest_sing_vals)
+    
+    #make subwindow
+    #axins = inset_axes(ax, width=1.3, height=0.9)
+    """
+
+    ax = axes
+#    ax = plt.subplot(122)
+    ax.set_yscale("log")
+    ax.grid(which="major", axis="y")
+    #ax.set_ylabel(r"max $\sigma_2")
+    #ax.set_ylabel(r"max [$\sum_{i=2}^k\sigma_i]")
+    #ax.yaxis.set_ticks_position('right')
+    #ax.tick_params(labeltop=False, labelright=True)
+    ax.annotate(r"$\epsilon$", xy=(1.06, .02), xycoords='axes fraction', c=t3_color)
+    ax.annotate("TAME", xy=(.2,.7),xycoords='axes fraction',fontsize=12,c=t1_color)
+    ax.annotate("LowRankTAME", xy=(.2,.1),xycoords='axes fraction',fontsize=12,c=t4_color)
+    ax.set_ylabel(r"$\sigma_2$")
+    ax.set_xlabel(r"|$T_A$||$T_B$|")
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+
+    
+    ax.set_xlim(1e5,1e13)
+    ax.set_ylim(1e-16,1e-7)
+
+   #scatter plot formatting
+    marker_size = 15
+    marker_alpha = 1.0
+
+    plt.scatter(TAME_nonzero_triangle_products,TAME_nonzero_second_largest_sing_vals,marker='o',c=t1_color,s=marker_size)
+    plt.scatter(TAME_zero_triangle_products,TAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=t1_color,s=marker_size)
+
+    #plot machine epsilon
+    #all_triangle_products = list(itertools.chain(TAME_zero_triangle_products,TAME_nonzero_triangle_products)) 
+    #plt.plot(sorted(all_triangle_products),[2e-16]*(len(all_triangle_products)),c=t3_color)
+    plt.plot([1e5,1e13],[2e-16]*2,c=t3_color,zorder=1)
+
+    plt.scatter(LowRankTAME_nonzero_triangle_products,LowRankTAME_nonzero_second_largest_sing_vals,marker='o', c=darker_t4_color,s=marker_size)
+    scatter = plt.scatter(LowRankTAME_zero_triangle_products,LowRankTAME_zero_second_largest_sing_vals,facecolors='none',edgecolors=darker_t4_color,s=marker_size,zorder=2)
+    #print(type(scatter))
+   # legend_elements =  [plt.scatter([], [], marker='o', color='k', label='zero', markerfacecolor='none',markersize=5),
+    #                    plt.scatter([],[], marker="*", ms=10)]
+   # ax.legend(handles=legend_elements, loc='upper left')
+    
+
+    #TODO:combining plots, potential remove later
+    plt.subplots_adjust(bottom=0.2,top=.95,left=.17)
+    plt.tight_layout()
+    plt.show()
     
