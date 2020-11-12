@@ -61,6 +61,7 @@ def LowRankEigenAlign_noise_size_experiments():
 
 
     f = plt.figure()
+    f.set_size_inches(7, 5.13)
     
     # 2 x 3 array 
     height = 0.35
@@ -103,7 +104,8 @@ def LowRankEigenAlign_noise_size_experiments():
 
     RG_noise_ax[0].set_xlabel(r"$q$")
     RG_noise_ax[1].set_title("RG")
-    
+    RG_noise_ax[1].annotate("LR-TAME",xy=(.55, .9), xycoords='axes fraction', c=darker_t4_color)
+
     for (p_file,n_file,color,annotate_label,annotate_locs,graph_type,linestyle) in RG_results:
         TAME_random_graph_noise_experiments(RG_noise_ax, p_file,n_file,color,annotate_label,annotate_locs,graph_type,linestyle)
 
@@ -122,7 +124,9 @@ def LowRankEigenAlign_noise_size_experiments():
     #put labels on the plots 
     RG_sizes_labels = [ 
         (t6_color,"LR-TAME-lrm",(.25, .75)),
-        (darker_t4_color,"LR-TAME",(.1, .875))
+        (darker_t4_color,"LR-TAME",(.1, .875)),
+        (t2_color,r"$\Lambda-$TAME",(.4, .37))
+
     ]
     
     for (c,text, loc) in RG_sizes_labels:
@@ -358,6 +362,7 @@ def TAME_random_graph_noise_experiments(axes,p_file,n_file,color,anotate_label,a
     ax = axes[0]
 
     ax.set_ylim(0,1.0)
+    ax.set_xlim(0,.2)
     ax.set_xscale("log")
     ax.grid(which="major", axis="both",alpha=.3)
     
@@ -383,6 +388,7 @@ def TAME_random_graph_noise_experiments(axes,p_file,n_file,color,anotate_label,a
     
     ax = axes[1]
     ax.set_ylim(0,1.0)
+    ax.set_xlim(0,.2)
 
     ax.set_xscale("log")
     ax.grid(which="major", axis="both",alpha=.3)
@@ -562,7 +568,6 @@ def TAME_RandomGeometric_rank_1_case_singular_values(axes=None):
 
     with open(TAME_RESULTS + "Rank1SingularValues/LowRankTAME_RandomGeometric_log5_iter_30_n_100_20K_no_match_tol_1e-12.json","r") as f:
         LowRankTAME_data = json.load(f)    
-        #LowRankTAME_data = LowRankTAME_data[-1]
 
     with open(TAME_RESULTS + "Rank1SingularValues/TAME_RandomGeometric_degreedist:log5_alphas:[1.0]_betas:[0.0]_iter:30_trials:10_n:[1e2,5e2,1e3,2e3,5e3,1e4,2e4]_no_match_tol:1e-12.json","r") as f:
         TAME_data = json.load(f)
@@ -772,4 +777,401 @@ def TAME_RandomGeometric_rank_1_case_singular_values(axes=None):
     #TODO: combining plots, potentially remove later
     plt.tight_layout()
     plt.show()
+
+
+
+def make_LVGNA_runtime_performance_plots():
+
+    f = plt.figure()
+    f.set_size_inches(8, 5)
+
+    height = 0.8
+    width = 0.55 
+    far_left = .08
+    bottom = .125
+    pad = .08
+
+    rectangle1 = [far_left, bottom, width, height]
+    rectangle2 = [far_left+width+pad, bottom, .25, height]
+
+    axes = [plt.axes(rectangle1),plt.axes(rectangle2)]
+
+    make_LVGNA_runtime_plots(axes[0])
+    make_LVGNA_performance_plots(axes[1])
+
+    plt.show()
+
+
+#Original Performance plots, currently supporting LambdaTAME, TAME (C++), LGRAAL, and LowRankTAME 
+#TODO: must be updated to have, TAME (Julia (?)), max rank LowRankTAME implementations
+def make_LVGNA_performance_plots(ax=None):
+
+    graph_names, LGRAAL_tri_results, LGRAAL_runtimes, Original_TAME_tri_results, Original_TAME_runtimes, _,_ = get_results()
+    def process_data(f,algorithm):
+        _, exp_results = json.load(f)
+        #Format the data to 
+        exp_idx = {name:i for i,name in enumerate(graph_names)}
+
+        results = np.zeros((len(graph_names),len(graph_names)))
+        runtimes = np.zeros((len(graph_names),len(graph_names)))
+
+        for (file_A,file_B,matched_tris,max_tris,param_profiles) in exp_results:
+
+
+            graph_A = " ".join(file_A.split(".ssten")[0].split("_"))
+            graph_B = " ".join(file_B.split(".ssten")[0].split("_"))
+            i = exp_idx[graph_A]
+            j = exp_idx[graph_B]
+
+            ratio = matched_tris/max_tris
+            results[i,j] = ratio
+            results[j,i] = ratio
+
+            #sum over all params
+            total_runtime = 0.0
+            matching_runtime = 0.0
+            for params, profile in param_profiles:
+                timings = [v for k,v in profile.items() if "timings" in k]
+                matching_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],[v for k,v in profile.items() if "matching_timings" in k]))
+                total_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],timings))
+
+                print(f"total_runtime: {total_runtime}  ---  matching_runtime: {matching_runtime}")
+                print(total_runtime - matching_runtime)
+            
+            runtimes[j,i] = total_runtime
+            runtimes[i,j] = total_runtime
+        return runtimes, results
+
+    with open(TAME_RESULTS + "LVGNA_Experiments/LowRankTAME_LVGNA_alpha_[.5,1.0]_beta_[0,1e0,1e1,1e2]_iter_15.json", "r") as f:
+        LowRankTAME_runtimes, LowRankTAME_results = process_data(f,"LowRankTAME")
+        
+    with open(TAME_RESULTS + "LVGNA_Experiments/LowRankTAME_LVGNA_alpha_[.5,1.0]_beta_[0,1,1e1,1e2]_iter_15_low_rank_matching.json", "r") as f:
+        LowRankTAME_LRMatch_runtimes, LowRankTAME_LRMatch_results = process_data(f,"LowRankTAME")
+
+  
+    with open(TAME_RESULTS + "LVGNA_Experiments/LambdaTAME_LVGNA_results_alphas:[.5,1.0]_betas:[0,1e0,1e1,1e2]_iter:15.json","r") as f:
+        _, exp_results = json.load(f)
+        #Format the data to 
+        exp_idx = {name:i for i,name in enumerate(graph_names)}
+
+        LambdaTAME_results = np.zeros((len(graph_names),len(graph_names)))
+        LambdaTAME_runtimes = np.zeros((len(graph_names),len(graph_names)))
+
+        for (file_A,file_B,matched_tris,max_tris,profile) in exp_results:
+            graph_A = " ".join(file_A.split(".ssten")[0].split("_"))
+            graph_B = " ".join(file_B.split(".ssten")[0].split("_"))
+            i = exp_idx[graph_A]
+            j = exp_idx[graph_B]
+
+            ratio = matched_tris/max_tris
+            LambdaTAME_results[i,j] = ratio
+            LambdaTAME_results[j,i] = ratio
+
+            total_runtime = 0.0
+            #matching_runtime = 0.0
+        
+            timings = [v for k,v in profile.items() if "timings" in str.lower(k)]
+            #matching_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],[v for k,v in profile.items() if "matching_timings" in k]))
+            total_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],timings))
+
+            LambdaTAME_runtimes[j,i] = total_runtime
+            LambdaTAME_runtimes[i,j] = total_runtime
+       
+    with open(TAME_RESULTS + "LVGNA_Experiments/LowRankEigenAlign_LVGNA_iter:10.json","r") as f:
+        _, exp_results = json.load(f)
+        #Format the data to 
+        exp_idx = {name:i for i,name in enumerate(graph_names)}
+
+        LowRankEigenAlign_results = np.zeros((len(graph_names),len(graph_names)))
+        LowRankEigenAlign_runtimes = np.zeros((len(graph_names),len(graph_names)))
+
+        for (file_A,file_B,matched_tris,max_tris,_,runtime) in exp_results:
+            graph_A = " ".join(file_A.split(".smat")[0].split("_"))
+            graph_B = " ".join(file_B.split(".smat")[0].split("_"))
+            i = exp_idx[graph_A]
+            j = exp_idx[graph_B]
+
+            ratio = matched_tris/max_tris
+            LowRankEigenAlign_results[i,j] = ratio
+            LowRankEigenAlign_results[j,i] = ratio
+
+            LowRankEigenAlign_runtimes[j,i] = runtime
+            LowRankEigenAlign_runtimes[i,j] = runtime
+
+    n = len(graph_names)
+    LGRAAL_performance = []
+    LGRAAL_accuracy = []
+    TAME_performance = []
+    TAME_accuracy = []
+    LambdaTAME_performance = []
+    LambdaTAME_accuracy = []
+    LowRankTAME_performance = []
+    LowRankTAME_accuracy = []
+    LowRankTAME_LRMatch_performance = []
+    LowRankTAME_LRMatch_accuracy = []
+    LowRankEigenAlign_performance = []
+    LowRankEigenAlign_accuracy = []
+
+    Is,Js = np.triu_indices(n,k=1)
+    for i,j in zip(Is,Js):
+
+        best = max(LambdaTAME_results[i,j],Original_TAME_tri_results[i,j],LGRAAL_tri_results[i,j],LowRankTAME_results[i,j],LowRankTAME_LRMatch_results[i,j],LowRankEigenAlign_results[i,j])
+
+        LGRAAL_ratio = LGRAAL_tri_results[i,j]/best
+        #LGRAAL_accuracy.append(LGRAAL_tri_results[i,j])
+        LGRAAL_performance.append(LGRAAL_ratio)
+
+        #TODO: refactor to TAME
+        ratio =  Original_TAME_tri_results[i,j]/ best
+        #TAME_accuracy.append(Original_TAME_tri_results[i,j])
+        TAME_performance.append(ratio)
+
+        #TODO: refactor to LambdaTAME
+       # LambdaTAME_accuracy.append(LambdaTAME_results[i,j])
+        ratio = LambdaTAME_results[i, j] / best
+        LambdaTAME_performance.append(ratio)
+
+      #  LowRankTAME_accuracy.append(LowRankTAME_results[i,j])
+        ratio = LowRankTAME_results[i, j] / best
+        LowRankTAME_performance.append(ratio)
+
+     #   LowRankTAME_LRMatch_accuracy.append(LowRankTAME_LRMatch_results[i,j])
+        ratio = LowRankTAME_LRMatch_results[i, j] / best
+        LowRankTAME_LRMatch_performance.append(ratio)
+
+        ratio = LowRankEigenAlign_results[i,j] /best
+        LowRankEigenAlign_performance.append(ratio)
+    
+    #LGRAAL_accuracy      = sorted(LGRAAL_accuracy,reverse=True)
+    LGRAAL_performance   = sorted(LGRAAL_performance,reverse=True)
+    TAME_performance = sorted(TAME_performance,reverse=True)
+    #TAME_accuracy    = sorted(TAME_accuracy ,reverse=True)
+    LambdaTAME_performance = sorted(LambdaTAME_performance,reverse=True)
+    #LambdaTAME_accuracy    = sorted(LambdaTAME_accuracy,reverse=True)
+    LowRankTAME_performance = sorted(LowRankTAME_performance,reverse=True)
+    #LowRankTAME_accuracy    = sorted(LowRankTAME_accuracy,reverse=True)
+    LowRankTAME_LRMatch_performance = sorted(LowRankTAME_LRMatch_performance,reverse=True)
+    #LowRankTAME_LRMatch_accuracy    = sorted(LowRankTAME_LRMatch_accuracy,reverse=True)
+    LowRankEigenAlign_performance = sorted(LowRankEigenAlign_performance,reverse=True)
+
+    if ax is None:
+        fig, ax = plt.subplots(1,1)
+        show_plot = True
+    else:
+        show_plot = False
+
+    
+
+   
+    #for i = 1:size(c, 2)
+    #plot!(t, [sum(R[:,i] .<= ti)/size(c,1) for ti in t], label="Alg $i", t=:steppre, lw=2)
+    #end
+
+    
+    #ax = [ax] #jerry rigged
+    ax.plot(range(len(TAME_performance)), TAME_performance, label="TAME", c=t1_color)
+    #bold_outlined_text(ax,"TAME (C++)",t1_color,(.82, .9))
+    ax.annotate("TAME (C++)",xy=(.6, .77), xycoords='axes fraction', c=t1_color,rotation=-35)
+   
+
+    ax.plot(range(len(LambdaTAME_performance)), LambdaTAME_performance, label="$\Lambda$-TAME", c=t2_color,linestyle="--")
+    ax.annotate("$\Lambda$-TAME",xy=(.5, .78), xycoords='axes fraction', c=t2_color,rotation=-35)
+    
+    ax.plot(range(len(LGRAAL_performance)), LGRAAL_performance, label="LGRAAL", c=t5_color,linestyle=(0,(3,1,1,1,1,1)))
+    ax.annotate("L-GRAAL",xy=(.47, .46), xycoords='axes fraction', c=t5_color)
+    
+    ax.plot(range(len(LowRankTAME_performance)), LowRankTAME_performance, label="LowRankTAME", c=t4_color,linestyle=(0, (3, 1, 1, 1)))
+    ax.annotate("LowRankTAME",xy=(.4, .96), xycoords='axes fraction', c=t4_color)
+    
+    ax.plot(range(len(LowRankTAME_LRMatch_performance)), LowRankTAME_LRMatch_performance, label="LowRankTAME", c=t6_color,linestyle="-.")
+    ax.annotate("LowRankTAME-(lrm)",xy=(.35, .57),xycoords='axes fraction', c=t6_color,rotation=-45)
+    
+    ax.plot(range(len(LowRankEigenAlign_performance)),LowRankEigenAlign_performance,label="LowRankEigenAlign", c=t3_color,linestyle=":")
+    ax.annotate("LowRankEigenAlign",xy=(.1, .1),xycoords='axes fraction', c=t3_color,rotation=-48)
+    
+    
+    ax.set_ylabel("performance ratio")
+    ax.grid(which="both")
+    ax.set_xlabel("experiment order")
+    """
+    ax[1].plot(range(len(old_TAME_accuracy)),old_TAME_accuracy,label="TAME", c=t5_color)
+    ax[1].plot(range(len(new_TAME_accuracy)),new_TAME_accuracy, label="$\Lambda$-TAME", c=t2_color)
+    ax[1].plot(range(len(LGRAAL_accuracy)),LGRAAL_accuracy,label="L-GRAAL", c=t1_color)
+    ax[1].set_ylabel("Accuracy")
+    ax[1].set_xlabel("experiment rank")
+    ax[1].grid(which="both")
+    """
+    #plt.legend()
+    if show_plot:
+        plt.show()
+
+def make_LVGNA_runtime_plots(ax=None):
+
+    graph_names, LGRAAL_tri_results, LGRAAL_runtimes, \
+        Original_TAME_tri_results, TAME_runtimes, LambdaTAME_runtimes,\
+             new_TAME_tri_results = get_results()
+    
+
+    def process_LowRankTAME_data(f):
+        _, results = json.load(f)
+
+        #Format the data to 
+        exp_idx = {name:i for i,name in enumerate(graph_names)}
+        runtimes = np.zeros((len(graph_names),len(graph_names)))
+        problem_sizes = []
+
+        for (file_A,file_B,matched_tris,max_tris,param_profiles) in results:
+            graph_A = " ".join(file_A.split(".ssten")[0].split("_"))
+            graph_B = " ".join(file_B.split(".ssten")[0].split("_"))
+            i = exp_idx[graph_A]
+            j = exp_idx[graph_B]
+
+            #sum over all params
+            total_runtime = 0.0
+            matching_runtime = 0.0
+            for params, profile in param_profiles:
+                timings = [v for k,v in profile.items() if "timings" in k]
+                matching_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],[v for k,v in profile.items() if "matching_timings" in k]))
+                total_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],timings))
+
+                print(f"total_runtime: {total_runtime}  ---  matching_runtime: {matching_runtime}")
+                print(total_runtime - matching_runtime)
+            
+            runtimes[i,j] = total_runtime
+            runtimes[j,i] = total_runtime
+
+        return runtimes 
+
+
+    with open(TAME_RESULTS + "LVGNA_Experiments/LowRankTAME_LVGNA_alpha_[.5,1.0]_beta_[0,1e0,1e1,1e2]_iter_15.json", "r") as f:
+        LowRankTAME_runtimes = process_LowRankTAME_data(f)
+        
+    with open(TAME_RESULTS + "LVGNA_Experiments/LowRankTAME_LVGNA_alpha_[.5,1.0]_beta_[0,1,1e1,1e2]_iter_15_low_rank_matching.json", "r") as f:
+        LowRankTAME_LRM_runtimes = process_LowRankTAME_data(f)
+        
+
+    with open(TAME_RESULTS + "LVGNA_Experiments/LambdaTAME_LVGNA_results_alphas:[.5,1.0]_betas:[0,1e0,1e1,1e2]_iter:15.json","r") as f:
+        _, exp_results = json.load(f)
+        #Format the data to 
+        exp_idx = {name:i for i,name in enumerate(graph_names)}
+
+        LambdaTAME_runtimes = np.zeros((len(graph_names),len(graph_names)))
+
+        for (file_A,file_B,matched_tris,max_tris,profile) in exp_results:
+            graph_A = " ".join(file_A.split(".ssten")[0].split("_"))
+            graph_B = " ".join(file_B.split(".ssten")[0].split("_"))
+            i = exp_idx[graph_A]
+            j = exp_idx[graph_B]
+
+            total_runtime = 0.0
+            #matching_runtime = 0.0
+        
+            timings = [v for k,v in profile.items() if "timings" in str.lower(k)]
+            #matching_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],[v for k,v in profile.items() if "matching_timings" in k]))
+            total_runtime += sum(reduce(lambda l1,l2: [x + y for x,y in zip(l1,l2)],timings))
+
+            LambdaTAME_runtimes[j,i] = total_runtime
+            LambdaTAME_runtimes[i,j] = total_runtime
+
+    with open(TAME_RESULTS + "LVGNA_Experiments/LowRankEigenAlign_LVGNA_iter:10.json","r") as f:
+        _, exp_results = json.load(f)
+        #Format the data to 
+        exp_idx = {name:i for i,name in enumerate(graph_names)}
+
+
+        LowRankEigenAlign_runtimes = np.zeros((len(graph_names),len(graph_names)))
+
+        for (file_A,file_B,matched_tris,max_tris,_,runtime) in exp_results:
+            graph_A = " ".join(file_A.split(".smat")[0].split("_"))
+            graph_B = " ".join(file_B.split(".smat")[0].split("_"))
+            i = exp_idx[graph_A]
+            j = exp_idx[graph_B]
+
+            LowRankEigenAlign_runtimes[j,i] = runtime
+            LowRankEigenAlign_runtimes[i,j] = runtime
+
+
+
+    n = len(graph_names)
+    problem_sizes = []
+
+    LGRAAL_exp_runtimes = []
+    TAME_exp_runtimes = []
+    LambdaTAME_exp_runtimes = []
+    LowRankTAME_exp_runtimes = []
+    LowRankTAME_LRM_exp_runtimes = []
+    LowRankEigenAlign_exp_runtimes = []
+
+    Is,Js = np.triu_indices(n,k=1)
+    for i,j in zip(Is,Js):
+
+        LGRAAL_exp_runtimes.append(LGRAAL_runtimes[i,j])
+        TAME_exp_runtimes.append(TAME_runtimes[i,j])
+        LambdaTAME_exp_runtimes.append(LambdaTAME_runtimes[i,j])
+        LowRankTAME_exp_runtimes.append(LowRankTAME_runtimes[i, j])
+        LowRankTAME_LRM_exp_runtimes.append(LowRankTAME_LRM_runtimes[i, j])
+        LowRankEigenAlign_exp_runtimes.append(LowRankEigenAlign_runtimes[i,j])
+
+        problem_sizes.append(triangle_counts[graph_names[i]]*triangle_counts[graph_names[j]])
+
+
+    if ax is None:
+        fig, ax = plt.subplots(1,1)
+        show_plot = True
+    else:
+        show_plot = False
+    #ax = [ax] #jerry rigged
+
+    ax.set_ylim(1e0,2e6)
+    ax.set_xlim(2e5,5e11)
+
+    ax.set_ylabel("runtime (s)")
+    ax.set_xlabel(r"|$T_A$||$T_B$|")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    loess_smoothing_frac = .3
+    ax.grid(which="major",zorder=-2)
+    ax.scatter(problem_sizes,TAME_exp_runtimes,label="TAME", c=t1_color,marker='s')
+    plot_1d_loess_smoothing(problem_sizes,TAME_exp_runtimes,loess_smoothing_frac,ax,c=t1_color,linestyle="solid")
+#    ax[0].plot(range(len(old_TAME_performance)), old_TAME_performance, label="TAME", c=t4_color)
+    ax.annotate("TAME (C++)",xy=(.53, .85), xycoords='axes fraction', c=t1_color)
+
+
+#    print(new_TAME_exp_runtimes)
+    ax.scatter(problem_sizes,LambdaTAME_exp_runtimes,label="$\Lambda$-TAME", c=t2_color,marker='^')
+    plot_1d_loess_smoothing(problem_sizes,LambdaTAME_exp_runtimes,loess_smoothing_frac,ax,c=t2_color,linestyle="--")
+    #ax[0].plot(range(len(new_TAME_performance)), new_TAME_performance, label="$\Lambda$-TAME", c=t2_color)
+    ax.annotate("$\Lambda$-TAME",xy=(.65, .17), xycoords='axes fraction', c=t2_color)
+    
+    ax.scatter(problem_sizes, LGRAAL_exp_runtimes,label="$LGRAAL", c=t5_color,zorder=-1,marker='x')
+    plot_1d_loess_smoothing(problem_sizes,LGRAAL_exp_runtimes,loess_smoothing_frac,ax,c=t5_color,linestyle=(0,(3,1,1,1,1,1)))
+    #ax.plot(range(len(LGRAAL_performance)), LGRAAL_performance, label="LGRAAL", c=t1_color)
+    ax.annotate("L-GRAAL",xy=(.2, .7), xycoords='axes fraction', c=t5_color)
+
+    ax.scatter(problem_sizes,LowRankTAME_exp_runtimes,label="LowRankTAME", c=t4_color)
+    plot_1d_loess_smoothing(problem_sizes,LowRankTAME_exp_runtimes,loess_smoothing_frac,ax,c=t4_color,linestyle=(0, (3, 1, 1, 1)))
+    ax.annotate("LowRankTAME",xy=(.7, .57), xycoords='axes fraction', c=t4_color)
+ 
+    ax.scatter(problem_sizes,LowRankTAME_LRM_exp_runtimes,facecolors='none',edgecolors=t6_color,label="LowRankTAME-(lrm)")
+    plot_1d_loess_smoothing(problem_sizes,LowRankTAME_LRM_exp_runtimes,loess_smoothing_frac,ax,c=t6_color,linestyle="-.")
+    ax.annotate("LowRankTAME-(lrm)",xy=(.55, .48), xycoords='axes fraction', c=t6_color)
+ 
+    ax.scatter(problem_sizes,LowRankEigenAlign_exp_runtimes,label="LowRankEigenAlign",c=t3_color,marker="*")
+    plot_1d_loess_smoothing(problem_sizes,LowRankEigenAlign_exp_runtimes,loess_smoothing_frac,ax,c=t3_color,linestyle=":")
+    ax.annotate("LowRankEigenAlign",xy=(.1, .27), xycoords='axes fraction', c=t3_color)
+    
+ 
+
+    """
+    ax[1].plot(range(len(old_TAME_accuracy)),old_TAME_accuracy,label="TAME", c=t5_color)
+    ax[1].plot(range(len(new_TAME_accuracy)),new_TAME_accuracy, label="$\Lambda$-TAME", c=t2_color)
+    ax[1].plot(range(len(LGRAAL_accuracy)),LGRAAL_accuracy,label="LGRAAL", c=t1_color)
+    ax[1].set_ylabel("Accuracy")
+    ax[1].set_xlabel("experiment rank")
+    ax[1].grid(which="both")
+    """
+    #plt.legend()
+    plt.tight_layout()
+    if show_plot:
+        plt.show()
 
