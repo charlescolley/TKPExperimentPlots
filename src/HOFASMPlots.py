@@ -31,7 +31,8 @@ def make_HOFASM_accuracy_plots(add_inaxis=False):
     sigmas = [.025, .05, .0725, .1, .125, .15, .175, .2]
     average_over = 100
 
-    f = plt.figure(figsize=(350 / MY_DPI, 350 / MY_DPI), dpi=MY_DPI)
+    dpi = 60
+    f = plt.figure(figsize=(350 / MY_DPI, 350 / MY_DPI), dpi=60)
     ax = plt.gca()
 
     HOFASM_average_accuracies =  [acc_avg for _,_,acc_avg,_ in HOFASM_processed_data]
@@ -118,9 +119,9 @@ def make_HOFASM_experimentwise_accuracy_plots(ax=None):
     ax.fill_between(sigmas,HOFASM_80th_percentile_accuracies, [1.0]*len(HOFASM_80th_percentile_accuracies),alpha=0.3,facecolors=t4_color)#,hatch="||||||")
     ax.fill_between(sigmas,HOFASM_20th_percentile_accuracies, [1.0]*len(HOFASM_20th_percentile_accuracies),alpha=0.3,facecolors=t1_color)#,hatch="\\")
 
-    ax.plot(sigmas, HOFASM_5th_percentile_accuracies, c=t1_color,alpha=0.6)
+    ax.plot(sigmas, HOFASM_5th_percentile_accuracies, c=t1_color,alpha=0.6,zorder=1)
     ax.plot(sigmas, HOFASM_95th_percentile_accuracies, c=t4_color,alpha=0.6,markersize=3)#marker='o')
-    ax.plot(sigmas, HOFASM_median_accuracies, c=t4_color)
+    ax.plot(sigmas, HOFASM_median_accuracies, c=t4_color,zorder=1)
     ax.yaxis.set_ticks_position('right')
     ax.set_xticks([])
 
@@ -130,7 +131,9 @@ def make_HOFASM_experimentwise_accuracy_plots(ax=None):
     ax.set_ylim(.75,1.7)
    # plt.title("Accuracy Under Normal Perturbation")
     ax.set_xlabel(r"$\sigma$")
-    ax.set_title("Accuracy Ratio",fontsize=10)#({average_over} trials)")
+    ax.set_ylabel("Accuracy Ratio\nHOFASM/HOM",fontsize=8,zorder=3)
+    ax.yaxis.set_label_coords(0.25,0.675)
+    #ax.set_title("Accuracy Ratio",fontsize=10)#({average_over} trials)")
 
     #ax.set_tight_layout()
     if show_plot:
@@ -178,7 +181,7 @@ def make_timing_plots():
 
     #convert keys to integers
     n_vals = [int(n) for n,_,_,_ in HOFASM_new_processed_data]  #should be same for all
-    f = plt.figure(figsize=(350 / MY_DPI, 350 / MY_DPI), dpi=MY_DPI)
+    f = plt.figure(figsize=(350 / MY_DPI, 350 / MY_DPI), dpi=60)
     ax = plt.gca()
 
     new_average_runtimes =  [t_avg for _,_,t_avg,_ in HOFASM_new_processed_data]
@@ -189,7 +192,7 @@ def make_timing_plots():
     plt.loglog(n_vals, new_20th_percentile_runtimes, label="our work", c=t4_color,alpha=0.2)
     plt.loglog(n_vals, new_80th_percentile_runtimes, label="our work", c=t4_color,alpha=0.2)
     plt.loglog(n_vals, new_average_runtimes, label="our work", c=t4_color)
-    ax.annotate("our\nwork",xy=(.88, .325), xycoords='axes fraction', ha="center",fontsize=12, c=darkest_t4_color)
+    ax.annotate("our\nwork",xy=(.88, .3), xycoords='axes fraction', ha="center",fontsize=12, c=darkest_t4_color,rotation=45)
 
 
     #explicit marginalization results
@@ -203,7 +206,7 @@ def make_timing_plots():
     plt.loglog(n_vals, orig_80th_percentile_runtimes, label="partially implicit", c=t3_color,alpha=0.2)
     ax.fill_between(n_vals, orig_20th_percentile_runtimes, orig_80th_percentile_runtimes, alpha=0.2, facecolors=t3_color)
     plt.loglog(n_vals, orig_average_runtimes, label="partially implicit", c=t3_color)
-    ax.annotate("partially\nimplicit", xy=(.375, .04), xycoords='axes fraction',ha="center",fontsize=12, c=t3_color)
+    ax.annotate("partially\nimplicit", xy=(.85, .5), xycoords='axes fraction',ha="center",fontsize=12, c=t3_color,rotation=47.5)
 
     # implicit marginalization results
 
@@ -216,7 +219,7 @@ def make_timing_plots():
     ax.fill_between(n_vals, orig2_20th_percentile_runtimes, orig2_80th_percentile_runtimes, alpha=0.2,
                     facecolors=t5_color)
     plt.loglog(n_vals, orig2_average_runtimes, label="fully implicit", c=t5_color)
-    ax.annotate("fully\nimplicit", xy=(.6, .78), xycoords='axes fraction',ha="center",fontsize=12, c=t5_color)
+    ax.annotate("fully\nimplicit", xy=(.7, .68), xycoords='axes fraction',ha="center",fontsize=12, c=t5_color,rotation=50)
 
     plt.xlabel("# source points")
     plt.ylabel("runtime (s)")

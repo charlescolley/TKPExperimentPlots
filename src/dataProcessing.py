@@ -300,8 +300,8 @@ def process_synthetic_TAME_output2(data):
 
     trial_count = int(len(data)/(len(n_vals)*len(p_vals)))
 
-    exp_data = -np.ones((trial_count,len(n_vals),len(p_vals), len(param_vals), 30))
-    triangle_counts = -np.ones((trial_count,len(n_vals),len(p_vals), len(param_vals)))
+    exp_data = -np.ones((trial_count,len(n_vals),len(p_vals), len(param_vals), 15))
+    triangle_products = -np.ones((trial_count,len(n_vals),len(p_vals), len(param_vals)))
 
     for (seed,p_remove,n,acc,dw_acc,tri_match,A_tri,B_tri,max_tris,profiles) in data:
         if (p_remove,n) not in  exp_visit_counts:
@@ -310,14 +310,13 @@ def process_synthetic_TAME_output2(data):
         for params, profile_dict in profiles:
 
             ranks = profile_dict["ranks"]
-            if len(ranks) < 30:
-                ranks.extend([ranks[-1]] * (30 - len(ranks)))
-            print(exp_data.shape)
+            #if len(ranks) < 30:
+            #    ranks.extend([ranks[-1]] * (30 - len(ranks)))
             exp_data[exp_visit_counts[(p_remove,n)],n_vals[n],p_vals[p_remove],param_vals[params.split("_")[-1]], :] = ranks
-            triangle_counts[exp_visit_counts[(p_remove,n)],n_vals[n],p_vals[p_remove],param_vals[params.split("_")[-1]]] = max_tris
+            triangle_products[exp_visit_counts[(p_remove,n)],n_vals[n],p_vals[p_remove],param_vals[params.split("_")[-1]]] = A_tri*B_tri
         exp_visit_counts[(p_remove, n)] += 1
 
-    return exp_data, n_vals, p_vals, param_vals, triangle_counts
+    return exp_data, n_vals, p_vals, param_vals, triangle_products
 
 def process_RandomGraph_data(data):
     processed_data = {}

@@ -1,7 +1,7 @@
 from plottingStyle import * 
 
 
-def LowRankEigenAlign_noise_size_experiments():
+def RandomGraph_noise_size_experiments():
 
     #
     #  ER graphs p = 2log(n)/n
@@ -60,7 +60,7 @@ def LowRankEigenAlign_noise_size_experiments():
     ]
 
 
-    f = plt.figure()
+    f = plt.figure(dpi=60)
     f.set_size_inches(7, 5.13)
     
     # 2 x 3 array 
@@ -82,7 +82,7 @@ def LowRankEigenAlign_noise_size_experiments():
 
     ER_noise_ax[0].set_xlabel(r"$q$")
     ER_noise_ax[0].set_ylabel("accuracy")
-    ER_noise_ax[1].set_ylabel(r"$|T_{M(A,B)}| / \min{\{|T_A|,|T_B|\}}$")
+    ER_noise_ax[1].set_ylabel(r"matched tris$/ \min{\{|T_A|,|T_B|\}}$")
     ER_noise_ax[1].set_title("ER")
 
     for (p_file,n_file,color,annotate_label,annotate_locs,graph_type,linestyle) in ER_results:
@@ -228,7 +228,8 @@ def TAME_random_graph_size_experiments(axes, p_file,n_file,color,anotate_label,a
         #TODO: check on scope priorities of ax for closures   
         lines = [(lambda col: np.percentile(col,50),1.0,color) ]
         ribbons = [
-            (30,70,.2,color)
+ #           (30,70,.2,color)
+            (20,80,.2,color)
         ]
 
         sizes = list(data.keys())
@@ -370,7 +371,8 @@ def TAME_random_graph_noise_experiments(axes,p_file,n_file,color,anotate_label,a
         #TODO: check on scope priorities of ax for closures   
         lines = [(lambda col: np.percentile(col,50),1.0,color) ]
         ribbons = [
-            (30,70,.2,color)
+  #          (30,70,.2,color)
+            (20,80,.2,color)
         ]
 
         noise_levels = list(data.keys())
@@ -398,8 +400,8 @@ def TAME_random_graph_noise_experiments(axes,p_file,n_file,color,anotate_label,a
 
 #Shows the noise introduced by the TAME routine by considering second largest 
 # singular values in the rank 1 case (alpha=1.0, beta =0.0), plots againts both 
-# |V_A||V_B| and |T_A||T_B| for comparison. Data plotted for MultilMAGNA++ data
-def TAME_MultiMAGNA_rank_1_case_singular_values(axes=None):
+# |V_A||V_B| and |T_A||T_B| for comparison. Data plotted for LVGNA data
+def TAME_LVGNA_rank_1_case_singular_values(axes=None):
     with open(TAME_RESULTS + "Rank1SingularValues/TAME_LVGNA_iter_30_no_match_tol_1e-12.json","r") as f:
         TAME_data = json.load(f)
         TAME_data= TAME_data[-1]
@@ -410,7 +412,7 @@ def TAME_MultiMAGNA_rank_1_case_singular_values(axes=None):
 
 
     if axes is None:
-        f,axes = plt.subplots(1,1)
+        f,axes = plt.subplots(1,1,dpi=60)
         f.set_size_inches(3, 3)
 
     def process_data(data):
@@ -557,15 +559,13 @@ def TAME_MultiMAGNA_rank_1_case_singular_values(axes=None):
 # singular values in the rank 1 case (alpha=1.0, beta =0.0), plots againts both 
 # |V_A||V_B| and |T_A||T_B| for comparison. Data plotted for RandomGeometric Graphs 
 # degreedist = LogNormal(5,1). 
-#TBD: merge with Multimagna data? 
 def TAME_RandomGeometric_rank_1_case_singular_values(axes=None):
 
     if axes is None:
-        f,axes = plt.subplots(1,1)
+        f,axes = plt.subplots(1,1,dpi=60)
         f.set_size_inches(3, 3)
 
    
-
     with open(TAME_RESULTS + "Rank1SingularValues/LowRankTAME_RandomGeometric_log5_iter_30_n_100_20K_no_match_tol_1e-12.json","r") as f:
         LowRankTAME_data = json.load(f)    
 
@@ -782,7 +782,7 @@ def TAME_RandomGeometric_rank_1_case_singular_values(axes=None):
 
 def make_LVGNA_runtime_performance_plots():
 
-    f = plt.figure()
+    f = plt.figure(dpi=60)
     f.set_size_inches(8, 5)
 
     height = 0.8
@@ -1175,3 +1175,137 @@ def make_LVGNA_runtime_plots(ax=None):
     if show_plot:
         plt.show()
 
+def max_rank_experiments():
+
+
+    f = plt.figure(dpi=60)
+    f.set_size_inches(5, 3.5)
+    f, axes = plt.subplots(2,1)
+    #-------------------------------Plot Synth Data--------------------------------------
+
+    with open(TAME_RESULTS + "MaxRankExperiments/LowRankTAME_RandomGeometric_degreedist_log5_iter:15_alphas:[.5,1.0]_betas:[0.0,1e0,1e1,1e2]_n:[100,500,1K,2K,5K,10K,20K]_noMatching_pRemove:[.01,.05]_tol:1e-12_trialcount:50.json","r") as f:
+        synth_results = json.load(f)
+    
+    MM_exp_data, n_vals, p_vals, param_vals, tri_counts = process_synthetic_TAME_output2(synth_results)
+ 
+    ax = axes[0]
+    ax.set_xscale("log")
+    ax.set_ylim(00,315)
+
+    label_meta = [
+        ((.85, .07),"o",t1_color),
+        ((.85, .22),"v",t2_color),
+        ((.7, .475),"*",t3_color),
+        ((.83, .85),"s",t4_color)]#  no_ylim_points
+    #label_meta = [((.92, .25),t1_color),((.8, .51),t2_color),((.625, .8),t3_color),((.25, .88),t4_color)]
+
+    #beta=100 annotations
+    beta_100_meta = [(.15,.4),(.42,1.01),(.51,1.01),(.6,1.01),(.725,1.01),(.8,1.01),(.9,1.01)]
+
+    #beta=10 annotations
+    beta_10_meta = [(.15,.32),(.42,.515),(.51,.6),(.6,.65),(.725,.75),(.8,.95),(.9,.95)]
+
+    for (params,k),(loc,marker,c) in zip(param_vals.items(),label_meta):
+        
+        max_vals = []
+        mean_tris = []
+        
+        for n,j in n_vals.items():
+            max_vals.append(np.max(MM_exp_data[:,j,:,k,:]))
+            mean_tris.append(np.mean(tri_counts[:,j,:,k]))
+        
+
+        ax.plot(mean_tris,max_vals,c=c)
+
+        ax.annotate(params, xy=loc, xycoords='axes fraction',c=c)
+        #ax.plot(marker_loc[0],marker_loc[1],marker,c=c,markersize=5)
+
+
+    #ax.set_xticks(list(n_vals.keys()))
+    ax.set_title("Synthetic graphs")
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(labeltop=False, labelright=True)
+    #ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
+    #ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext())
+    ax.grid(which="major", axis="y")
+    #ax.set_xlim(3e6,2e11)
+
+    ax.set_xticklabels([1e6,1e7,1e8,1e9,1e10,1e11,1e12])
+    ax.set_xlim(1e5,1e12)
+    ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext())
+    ax.set_ylabel("maximum rank")
+    ax.set_yticks([50,100,150,200,250,300])
+    #ax.set_xticks([5e6,1e7,1e8,1e9,1e10,1e11])
+    #ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
+    
+    """---------------------------Plot Real World Data--------------------------------"""
+    ax = axes[1]
+    with open(TAME_RESULTS + "MaxRankExperiments/LowRankTAME_LVGNA.json", 'r') as f:
+        MM_results  = json.load(f)
+    MM_exp_data, param_indices,MM_file_names = process_TAME_output2(MM_results[1])
+    """
+    included_exps = [sorted(("human_Y2H1.ssten","yeast_Y2H1.ssten")),
+                     sorted(("human_PHY1.ssten","yeast_PHY1.ssten")),
+                     sorted(("human_PHY2.ssten","yeast_PHY2.ssten"))]
+
+    exps = [i for i,files in enumerate(MM_file_names) if sorted(files) in included_exps]
+    print(exps)
+    MM_file_names = [MM_file_names[i] for i in exps]
+    print(MM_file_names)
+    
+    MM_exp_data = MM_exp_data[exps,:,:]
+    """
+    with open(TAME_RESULTS + "MaxRankExperiments/LowRankTAME_Biogrid.json","r") as f:
+        Biogrid_results = json.load(f)
+
+    Biogrid_exp_data, _ = process_biogrid_results(Biogrid_results)
+    label_meta = [
+        ((.05, .35),"o",t1_color),
+        ((.05, .59),"v",t2_color),
+        ((.1, .8),"*",t3_color),
+        ((.09, .1),"s",t4_color)]
+
+    for (param, j),(loc,marker,c) in zip(param_indices.items(),label_meta):
+        n_points = []
+        max_ranks = []
+        ax.annotate(param, xy=loc, xycoords='axes fraction',c=c)
+
+        for i in range(MM_exp_data.shape[0]):
+
+            graph_names = [str.join(" ", x.split(".ssten")[0].split("_")) for x in MM_file_names[i]]
+            avg_n = np.mean([vertex_counts[f] for f in graph_names])
+
+            tri_counts = triangle_counts[graph_names[0]]*triangle_counts[graph_names[1]]
+           # tri_counts = sum([triangle_counts[graph_names[0]] for f in graph_names])
+            n_points.append(tri_counts)
+            max_ranks.append(np.max(MM_exp_data[i,:,j,:]))
+            if param == "β:100.0":
+                if np.max(MM_exp_data[i,:,j,:]) < np.max(MM_exp_data[i,:,:,:]):
+   
+                    print(graph_names)
+                    print(tri_counts)
+                    print(np.max(MM_exp_data[:,:,j,:]))
+                    print(np.max(MM_exp_data[i,:,j,:]))
+            
+        n_points.append(407650*347079)
+        max_ranks.append(np.max(Biogrid_exp_data[:,j,:]))
+
+
+        ax.scatter(n_points,max_ranks,c=c,s=15,alpha=.4,marker=marker)
+        plot_1d_loess_smoothing(n_points,max_ranks,.3,ax,c=c,linestyle="--")
+#        plt.plot(xout,yout,c=c,linestyle="--")
+
+    ax.set_xscale("log")
+    ax.set_title("LVGNA")
+    ax.set_xlabel(r"$|T_A||T_B|$")
+    ax.yaxis.set_ticks_position('both')
+    ax.set_yticks([50,100,150])
+    ax.set_xlim(1e5,1e12)
+    ax.set_ylabel("maximum rank")
+    ax.tick_params(labeltop=False, labelright=True)
+    #ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
+    ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext())
+    ax.set_xticks([1e5,1e6,1e7,1e8,1e9,1e10,1e11,1e12])
+    ax.grid(which="major", axis="y")
+    plt.tight_layout()
+    plt.show()
