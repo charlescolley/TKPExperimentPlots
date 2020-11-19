@@ -1,2 +1,4 @@
 # TKPExperimentPlots
-The pyplot code used to generate the figures in "Addressing Computational Bottlenecks in Higher-Order Graph Matching with Tensor Kronecker Product Structure".
+This repository contains the pyplot code used to generate the figures in "Addressing Computational Bottlenecks in Higher-Order Graph Matching with Tensor Kronecker Product Structure".
+
+ Please visit our [project page](https://www.cs.purdue.edu/homes/ccolley/project_pages/TensorKroneckerProducts.html) to get the original data used for generating our figures, and for more instructions on which commands generate the figures. If you'd like to run the experiments yourself, this plotting code should be used as a starting point for generating the plots after running the experiment drivers provided on our project page.ning the experiment drivers provided on our project page.
